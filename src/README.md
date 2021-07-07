@@ -1,4 +1,5 @@
 # 3-channel digit recognizer   
+
 ## Library import
 ``` python
 import torch
@@ -16,6 +17,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from scipy.io import loadmat
 ```
+
 ## Data preparations
 ```python
 train_data_mnist = datasets.MNIST('./datasets', train=True, download=True, transform=transforms.ToTensor())
@@ -146,7 +148,8 @@ Define custom data set.
   ref: http://ufldl.stanford.edu/housenumbers/
 - Others
   - [Albumentations](https://github.com/albumentations-team/albumentations)
-  - Add pattern background on MNIST image.
+  - Add pattern background behind MNIST image.
+
 ## Models
 ```python
 learning_rate = 1e-3
