@@ -150,9 +150,143 @@ Define custom data set.
   - [Albumentations](https://github.com/albumentations-team/albumentations)
   - Add pattern background behind MNIST image.
 
-## Models
+## Model
 ```python
 learning_rate = 1e-3
 batch_size = 64
 ```
-Set learning rate & batch size
+Set learning rate & batch size   
+
+```python
+class Net3(nn.Module):
+    def __init__(self):
+        super(Net3, self).__init__()
+        
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(3, 32, 3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(32),
+            nn.Conv2d(32, 32, 3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(32),
+            nn.Conv2d(32, 32, 3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(32),
+            nn.Dropout(0.25),
+            nn.AvgPool2d(2, 2)
+        )
+        
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(32, 64, 3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 64, 3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 64, 3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(64),
+            nn.Dropout(0.25),
+            nn.AvgPool2d(2, 2)
+        )
+        
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(64, 128, 3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(128),
+            nn.Dropout(0.25),
+            nn.AvgPool2d(2, 2),
+        )
+
+        self.linear1 = nn.Linear(128, 80, bias=True)
+        torch.nn.init.xavier_uniform_(self.linear1.weight)
+        self.fc1 = nn.Sequential(
+            self.linear1,
+            nn.BatchNorm1d(80),
+            nn.ReLU()
+        )
+
+        self.linear2 = nn.Linear(80, 10, bias=True)
+        torch.nn.init.xavier_uniform_(self.linear2.weight)
+        self.fc2 = nn.Sequential(
+            self.linear2,
+            nn.BatchNorm1d(10)
+        )
+        
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        
+        x = x.view(x.size(0), -1)
+        x = self.fc1(x)
+        x = self.fc2(x)
+        return x
+```
+
+Model is consists of 3 convolution layers and 2 fully connected layers.   
+- Convolution layer   
+    - ReLU activation function
+    - Batch normalization
+    - Dropout
+    - Average Pooling
+- Fully connected layer
+    - Linear function
+    - Xavier initialization
+    - ReLU activation function
+    - Batch normalization
+```python
+criterion = torch.nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+```
+- Loss function: Cross Entropy
+- Optimizer: Adam   
+
+## Train
+```python
+training_epochs = 50
+
+for epoch in range(training_epochs):
+    model.train()
+    cost = 0
+    n_batches = 0
+    for X, Y in tqdm.tqdm(concat_train_loader, position=0, leave=True):
+      if use_cuda:
+          X = X.cuda()
+          Y = Y.cuda()
+      optimizer.zero_grad()
+      y_hat = model(X)
+      loss = criterion(y_hat, Y)
+      loss.backward()
+      optimizer.step()
+      
+      cost += loss.item()
+      n_batches += 1
+    
+    cost /= n_batches
+    print('[Epoch: {:>4}] cost = {:>.9}'.format(epoch+1, cost))
+    print("Dev")
+    test(concat_dev_loader, model)
+```
+## Test
+```python
+def test(data_loader, model):
+    model.eval()
+    n_predict = 0
+    n_correct = 0
+    with torch.no_grad():
+        for X, Y in tqdm.tqdm(data_loader, position=0, leave=True):
+            if use_cuda:
+              X = X.cuda()
+              Y = Y.cuda()
+            y_hat = model(X)
+            torch.argmax(y_hat)
+            
+            _, predicted = torch.max(y_hat, 1)
+            
+            n_predict += len(predicted)
+            n_correct += (Y == predicted).sum()
+        
+        accuracy = n_correct/n_predict
+        print(f"Accuracy: {accuracy} ()")
+```
